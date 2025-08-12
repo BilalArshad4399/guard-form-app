@@ -186,7 +186,7 @@ export function GuardForm() {
               <Shield className="h-6 w-6" />
             </div>
             <div>
-              <div className="text-xl font-bold">Security Report</div>
+              <div className="text-xl font-bold">NIB Security Report</div>
               <div className="text-sm text-slate-100 mt-1">
                 {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
