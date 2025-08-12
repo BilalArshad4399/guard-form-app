@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MapPin, CheckCircle, AlertCircle, Shield } from "lucide-react"
+import { MapPin, CheckCircle, AlertCircle, Shield, Clock, User } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import Image from "next/image"
 
 interface FormData {
   guardName: string
@@ -30,6 +31,12 @@ export function GuardForm() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [lastSubmission, setLastSubmission] = useState<{
+    guardName: string
+    checkpointName: string
+    time: string
+  } | null>(null)
   const searchParams = useSearchParams()
   const { toast } = useToast()
 
@@ -148,14 +155,36 @@ export function GuardForm() {
         body: JSON.stringify(dataToSubmit),
       })
 
+      const result = await response.json()
+
       if (!response.ok) {
-        throw new Error("Failed to submit data")
+        throw new Error(result.error || "Failed to submit data")
       }
 
-      toast({
-        title: "Success!",
-        description: "Guard information submitted successfully.",
+      setLastSubmission({
+        guardName: finalGuardName,
+        checkpointName: formData.checkpointName,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       })
+      setShowSuccess(true)
+
+      if (result.fallback) {
+        toast({
+          title: "✅ Report Logged Successfully",
+          description: "Your security report has been recorded and logged for processing.",
+          duration: 5000,
+        })
+      } else {
+        toast({
+          title: "✅ Report Submitted Successfully",
+          description: "Your security report has been saved to the system.",
+          duration: 5000,
+        })
+      }
+
+      setTimeout(() => {
+        setShowSuccess(false)
+      }, 5000)
 
       const currentCheckpoint = formData.checkpointName
       setFormData({
@@ -167,9 +196,10 @@ export function GuardForm() {
       })
       setLocationStatus("idle")
     } catch (error) {
+      console.error("Submission error:", error)
       toast({
         title: "Submission Error",
-        description: "Failed to submit guard information. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit guard information. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -177,17 +207,87 @@ export function GuardForm() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-100 p-4 flex items-center justify-center">
-      <Card className="w-full max-w-md mx-auto shadow-lg border border-gray-200 bg-white">
-        <CardHeader className="pb-6 bg-gradient-to-r from-slate-700 to-slate-800 text-white">
-          <CardTitle className="flex items-center gap-3 text-xl font-semibold">
-            <div className="p-2 bg-white/20 rounded-lg">
-              <Shield className="h-6 w-6" />
+  if (showSuccess && lastSubmission) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 flex items-center justify-center">
+        <Card className="w-full max-w-md mx-auto shadow-2xl border border-yellow-400/20 bg-gray-900/95 backdrop-blur-sm">
+          <CardHeader className="pb-6 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black text-center">
+            <CardTitle className="flex flex-col items-center gap-4">
+              <div className="p-4 bg-black/20 rounded-full">
+                <CheckCircle className="h-12 w-12" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">Report Submitted!</div>
+                <div className="flex items-center justify-center mt-2">
+                  <Image
+                    src="/images/mib-security-logo.png"
+                    alt="MIB Security"
+                    width={120}
+                    height={40}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent className="p-6 text-center">
+            <div className="space-y-4">
+              <div className="bg-yellow-400/10 p-4 rounded-lg border border-yellow-400/30">
+                <h3 className="font-semibold text-yellow-400 mb-3">Submission Details</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-gray-300">
+                      <User className="h-4 w-4" />
+                      Guard:
+                    </span>
+                    <span className="font-medium text-white">{lastSubmission.guardName}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-gray-300">
+                      <Clock className="h-4 w-4" />
+                      Time:
+                    </span>
+                    <span className="font-medium text-white">{lastSubmission.time}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <p className="text-gray-300 mb-4">
+                  Your security report has been successfully recorded and logged in the system.
+                </p>
+                <Button
+                  onClick={() => setShowSuccess(false)}
+                  className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold px-8 py-2 rounded-lg transition-colors"
+                >
+                  Submit Another Report
+                </Button>
+              </div>
             </div>
-            <div>
-              <div className="text-xl font-bold">NIB Security Report</div>
-              <div className="text-sm text-slate-100 mt-1">
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 flex items-center justify-center">
+      <Card className="w-full max-w-md mx-auto shadow-2xl border border-yellow-400/20 bg-gray-900/95 backdrop-blur-sm">
+        <CardHeader className="pb-6 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black">
+          <CardTitle className="flex flex-col items-center gap-3 text-xl font-semibold">
+            <div className="flex items-center justify-center">
+              <Image
+                src="/images/mib-security-logo.png"
+                alt="MIB Security"
+                width={140}
+                height={48}
+                className="object-contain"
+              />
+            </div>
+            <div className="text-center">
+              <div className="text-xl font-bold">Security Report</div>
+              <div className="text-sm text-black/80 mt-1 font-medium">
                 {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
             </div>
@@ -196,35 +296,28 @@ export function GuardForm() {
 
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {formData.checkpointName && (
-              <div className="bg-emerald-50 p-4 rounded-lg border-l-4 border-emerald-500">
-                <Label className="text-sm font-medium text-slate-600 uppercase tracking-wide">Checkpoint</Label>
-                <p className="text-emerald-800 font-bold text-xl mt-1 font-mono">{formData.checkpointName}</p>
-              </div>
-            )}
-
             <div className="space-y-3">
-              <Label htmlFor="guardName" className="text-base font-medium text-slate-700">
+              <Label htmlFor="guardName" className="text-base font-medium text-gray-200">
                 Guard Name *
               </Label>
               <Select
                 value={formData.guardName}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, guardName: value }))}
               >
-                <SelectTrigger className="h-12 text-base border-slate-300 focus:border-slate-500 rounded-lg">
+                <SelectTrigger className="h-12 text-base border-gray-600 bg-gray-800 text-white focus:border-yellow-400 rounded-lg">
                   <SelectValue placeholder="Select assigned guard" />
                 </SelectTrigger>
-                <SelectContent className="rounded-lg">
-                  <SelectItem value="Abdul Rafay Nawab" className="text-base py-3">
+                <SelectContent className="rounded-lg bg-gray-800 border-gray-600">
+                  <SelectItem value="Abdul Rafay Nawab" className="text-base py-3 text-white hover:bg-gray-700">
                     Abdul Rafay Nawab
                   </SelectItem>
-                  <SelectItem value="Ali Hamza" className="text-base py-3">
+                  <SelectItem value="Ali Hamza" className="text-base py-3 text-white hover:bg-gray-700">
                     Ali Hamza
                   </SelectItem>
-                  <SelectItem value="Hussain" className="text-base py-3">
+                  <SelectItem value="Hussain" className="text-base py-3 text-white hover:bg-gray-700">
                     Hussain
                   </SelectItem>
-                  <SelectItem value="other" className="text-base py-3 text-amber-700 font-medium">
+                  <SelectItem value="other" className="text-base py-3 text-yellow-400 font-medium hover:bg-gray-700">
                     Other Guard
                   </SelectItem>
                 </SelectContent>
@@ -233,7 +326,7 @@ export function GuardForm() {
 
             {formData.guardName === "other" && (
               <div className="space-y-3">
-                <Label htmlFor="customGuardName" className="text-base font-medium text-slate-700">
+                <Label htmlFor="customGuardName" className="text-base font-medium text-gray-200">
                   Custom Guard Name *
                 </Label>
                 <Input
@@ -241,15 +334,15 @@ export function GuardForm() {
                   value={formData.customGuardName}
                   onChange={(e) => setFormData((prev) => ({ ...prev, customGuardName: e.target.value }))}
                   placeholder="Enter guard name"
-                  className="h-12 text-base border-slate-300 focus:border-slate-500 rounded-lg"
+                  className="h-12 text-base border-gray-600 bg-gray-800 text-white focus:border-yellow-400 rounded-lg"
                 />
               </div>
             )}
 
             <div className="space-y-4">
-              <Label className="text-base font-medium text-slate-700">Location Verification * (Required)</Label>
+              <Label className="text-base font-medium text-gray-200">Location Verification * (Required)</Label>
 
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
                 <Button
                   type="button"
                   onClick={getCurrentLocation}
@@ -257,10 +350,10 @@ export function GuardForm() {
                   variant={locationStatus === "success" ? "default" : "outline"}
                   className={`w-full h-12 text-base font-medium flex items-center justify-center gap-2 rounded-lg transition-colors ${
                     locationStatus === "success"
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      ? "bg-yellow-400 hover:bg-yellow-500 text-black"
                       : locationStatus === "error"
-                        ? "border-red-300 text-red-700 hover:bg-red-50"
-                        : "bg-slate-600 hover:bg-slate-700 text-white"
+                        ? "border-red-400 text-red-400 hover:bg-red-400/10"
+                        : "bg-gray-700 hover:bg-gray-600 text-white border-gray-600"
                   }`}
                 >
                   {locationStatus === "loading" ? (
@@ -282,7 +375,7 @@ export function GuardForm() {
                 </Button>
 
                 {locationStatus === "error" && (
-                  <div className="flex items-center gap-2 text-red-700 mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                  <div className="flex items-center gap-2 text-red-400 mt-3 p-3 bg-red-400/10 rounded-lg border border-red-400/30">
                     <AlertCircle className="h-4 w-4" />
                     <span className="text-sm font-medium">Location capture failed - please retry</span>
                   </div>
@@ -290,13 +383,13 @@ export function GuardForm() {
               </div>
 
               {formData.latitude && formData.longitude && (
-                <div className="bg-emerald-50 p-4 rounded-lg border-l-4 border-emerald-500">
-                  <div className="flex items-center gap-2 text-emerald-800 font-medium mb-2">
+                <div className="bg-yellow-400/10 p-4 rounded-lg border-l-4 border-yellow-400">
+                  <div className="flex items-center gap-2 text-yellow-400 font-medium mb-2">
                     <CheckCircle className="h-4 w-4" />
                     GPS Coordinates
                   </div>
-                  <div className="bg-white p-3 rounded border">
-                    <p className="text-sm text-slate-600 font-mono">
+                  <div className="bg-gray-800 p-3 rounded border border-gray-700">
+                    <p className="text-sm text-gray-300 font-mono">
                       {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
                     </p>
                   </div>
@@ -308,8 +401,8 @@ export function GuardForm() {
               type="submit"
               className={`w-full h-12 text-base font-medium mt-6 rounded-lg transition-colors ${
                 locationStatus === "success"
-                  ? "bg-slate-800 hover:bg-slate-900 text-white"
-                  : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                  : "bg-gray-700 text-gray-400 cursor-not-allowed"
               }`}
               disabled={isSubmitting || locationStatus === "loading" || locationStatus !== "success"}
             >
