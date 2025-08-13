@@ -236,6 +236,15 @@ export function GuardForm() {
               <div className="bg-yellow-400/10 p-4 rounded-lg border border-yellow-400/30">
                 <h3 className="font-semibold text-yellow-400 mb-3">Submission Details</h3>
                 <div className="space-y-2 text-sm">
+                  {lastSubmission.checkpointName && (
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-gray-300">
+                        <Shield className="h-4 w-4" />
+                        Checkpoint:
+                      </span>
+                      <span className="font-medium text-white">{lastSubmission.checkpointName}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2 text-gray-300">
                       <User className="h-4 w-4" />
@@ -296,6 +305,18 @@ export function GuardForm() {
 
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {formData.checkpointName && (
+              <div className="space-y-3">
+                <Label htmlFor="checkpointName" className="text-base font-medium text-gray-200">
+                  Checkpoint Name
+                </Label>
+                <div className="h-12 px-3 py-2 text-base border border-gray-600 bg-gray-800/50 text-gray-300 rounded-lg flex items-center">
+                  <Shield className="h-4 w-4 mr-2 text-yellow-400" />
+                  {formData.checkpointName}
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-3">
               <Label htmlFor="guardName" className="text-base font-medium text-gray-200">
                 Guard Name *
