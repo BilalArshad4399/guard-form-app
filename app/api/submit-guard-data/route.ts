@@ -15,8 +15,8 @@ export async function POST(request: NextRequest) {
     const formData = {
       guardName,
       location: `${latitude}, ${longitude}`,
-      submissionTime: new Date(submissionTime).toLocaleString("en-US", {
-        timeZone: "Asia/Karachi",
+      submissionTime: new Date(submissionTime).toLocaleString("en-AU", {
+        timeZone: "Australia/Sydney",
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
